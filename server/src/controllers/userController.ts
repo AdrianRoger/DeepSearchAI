@@ -3,7 +3,9 @@ import SuggestionGenerationService from '../services/suggestionGenerationService
 import UserRepository from '../repositories/userRepository';
 import { IUser } from '../types/user';
 import bcrypt, { compare } from 'bcrypt';
-import { createToken } from '../utils/token';
+import { createToken, verifyToken } from '../utils/token';
+import sendEmail from '../services/sendEmail';
+import createEmailToRecoverPassword from '../services/emailSenderPass';
 
 const userRepository = new UserRepository(); 
 const suggestionService = new SuggestionGenerationService();
@@ -23,16 +25,29 @@ export default class UserController {
         });
     }
 
+    public async sendRecoveryEmail(req: Request, res: Response) {
+        const { email } = req.body;
+
+        const user = await userRepository.getUserByEmail(email);
+
+        if(!user) {
+            return res.status(401).json({ message: "E-mail not found." });
+        }
+
+        await createEmailToRecoverPassword(user.id as string, email);
+        return res.status(200).json({ message: "Email delivered." })
+    }
+
     public async login(req: Request, res: Response) {
         const { email, password } = req.body;
         const user = await userRepository.getUserByEmail(email);
         if(!user) {
-            return "Credentials not found."
+            return res.status(401).json({ message: "Credentials not found." });
         }
 
         const comparePassword = await compare(password as string, user.password as string);
         if(!comparePassword) {
-            return "Credentials not found.";
+            return res.status(401).json({ message: "Credentials not found." });
         }
 
         const token = createToken({ id: user.id as string, email }, { expiresIn: "1d" });
@@ -76,5 +91,25 @@ export default class UserController {
         return res.status(200).json({ 
             data: pageDataWithType 
         });
+    }
+
+    public async resetPassword(req: Request, res: Response) {
+        const { password } = req.body;
+        const token = req.headers.authorization?.split(' ')[1] as string;
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        try {
+            const authenticatedUser = verifyToken(token);
+            if(!authenticatedUser) {
+                throw new Error();
+            }
+            const email = authenticatedUser.email;
+            return res.status(200).json({ 
+                data: await userRepository.resetPassword(hashedPassword, email)
+            });
+
+        } catch (error) {
+            return res.status(401).json({ message: "Invalid token, try again." });
+        }
     }
 }

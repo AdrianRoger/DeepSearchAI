@@ -70,14 +70,14 @@ export const login = async (email: string, password: string): Promise<IFetchResp
         
         if (!response.ok) {
             const errorResponse = await response.json();
-            return { error: errorResponse.error }
+            return { error: errorResponse.message }
         } 
 
         const data = await response.json();
         
         return { ...data };
     } catch (error: any) {
-        return { error: error.message }
+        return { error: error }
     }
 }
 
@@ -93,7 +93,7 @@ export const registerUser = async (email: string, password: string): Promise<IFe
                 password
             }),
         });
-
+        
         if (!response.ok) {
             const errorResponse = await response.json();
             return { error: errorResponse.error }
@@ -121,5 +121,56 @@ export const getPromptSuggestions = async (userID: string) => {
         return { ...data };
     } catch (error: any) {
         return { error: error.message }
+    }
+}
+
+export const sendForgotPasswordEmail = async (email: string): Promise<IFetchResponse> => {
+    try {
+        const response = await fetch(`${baseUrl}/user/recovery-pass`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify({ 
+                email,
+            }),
+        });
+        
+        if (!response.ok) {
+            const errorResponse = await response.json();
+            return { error: errorResponse.message }
+        } 
+
+        const data = await response.json();
+
+        return { ...data };
+    } catch (error: any) {
+        return { error: error }
+    }
+}
+
+export const resetPassword = async (password: string, token: string): Promise<IFetchResponse> => {
+    try {
+        const response = await fetch(`${baseUrl}/user/reset-pass`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json', 
+            },
+            body: JSON.stringify({ 
+                password
+            }),
+        });
+
+        if (!response.ok) {
+            const errorResponse = await response.json();
+            return { error: errorResponse.message }
+        } 
+
+        const data = await response.json();
+
+        return { ...data };
+    } catch (error: any) {
+        return { error: error }
     }
 }

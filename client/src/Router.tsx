@@ -3,6 +3,7 @@ import LoginPage from "./pages/login";
 import SuggestionPage from "./pages/suggestion/index";
 import ChatPage from "./pages/chat/index";
 import ForYouPage from "./pages/forYou";
+import ResetPassword from "./pages/resetPass/resetPassword";
 
 const Router = createBrowserRouter([
     {
@@ -20,7 +21,12 @@ const Router = createBrowserRouter([
     {
         path: "/foryou",
         element: <ForYouPage />,
-    }
+    },
+    {
+        path: "/reset-password/:token",
+        element: <ResetPassword />,
+    },
+    
 ]);
 
 export default Router;

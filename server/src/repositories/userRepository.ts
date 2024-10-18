@@ -1,5 +1,4 @@
 import { IUser, IUserRepository } from '../types/user';
-import { CustomError } from '../helpers/customError';
 import { db }  from '../database/knex';
 import { IUserTheme, ITheme } from '../types/user';
 
@@ -12,7 +11,7 @@ export default class UserRepository implements IUserRepository {
         return newUser[0];
     }
 
-    public async getUserByID(userID: string):Promise<Partial<IUser> | undefined > {
+    public async getUserByID(userID: string): Promise<Partial<IUser> | undefined > {
 
         const user = await db('users')
             .select('id', 'email')
@@ -22,7 +21,7 @@ export default class UserRepository implements IUserRepository {
         return user
     }
 
-    public async getUserByEmail(userEmail: string):Promise<Partial<IUser> | undefined > {
+    public async getUserByEmail(userEmail: string): Promise<Partial<IUser> | undefined > {
 
         const user = await db('users')
             .select('id', 'password', 'email')
@@ -30,6 +29,17 @@ export default class UserRepository implements IUserRepository {
             .first();
         
         return user
+    }
+
+    public async resetPassword(password: string, email: string): Promise<Partial<IUser> | undefined> {
+        const user = await db('users')
+            .where('email', email)
+            .update({
+                password
+            })
+            .returning('*');
+            
+        return user[0];
     }
 
     public async insertUsersTheme(userID: string, themesIDs:Array<string>):Promise<Array<IUserTheme>> {

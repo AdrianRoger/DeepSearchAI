@@ -1,8 +1,8 @@
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { Box, Paper, TextField, Typography, Button, Switch, FormControlLabel, FormControl, InputLabel, OutlinedInput, InputAdornment, IconButton } from "@mui/material";
+import { Box, Paper, TextField, Typography, Button, Switch, FormControlLabel, FormControl, InputLabel, OutlinedInput, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { useTheme } from '@mui/material/styles';
 import { useEffect, useState } from "react";
-import { login, registerUser } from "../../api/fetch";
+import { login, registerUser, sendForgotPasswordEmail } from "../../api/fetch";
 import useToast from "../../hooks/useToast";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +19,8 @@ const LoginPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [registerErrors, setRegisterErrors] = useState({ registerEmail: '', registerPassword: '', confirmPassword: '' });
+  const [modalOpen, setModalOpen] = useState(false); 
+  const [forgotEmail, setForgotEmail] = useState('');
   const [valid, setValid] = useState(true);
   const theme = useTheme();
   const showToast = useToast();
@@ -42,6 +44,31 @@ const LoginPage = () => {
 
   const handleToggle = () => {
     setRegisterChoice(!registerChoice);
+  };
+
+  const handleOpenModal = () => {
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setForgotEmail('');
+  };
+
+  const handleForgotPassword = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if(!forgotEmail) return showToast('E-mail is required!', 'error');
+    if(!emailRegex.test(forgotEmail)) return showToast('Provide a valid e-mail!', 'error');
+
+    try {
+      const response = await sendForgotPasswordEmail(forgotEmail);
+      if(response.error) return showToast(response.error, 'error');
+      
+      showToast('Recovery e-mail send!', 'success');
+      handleCloseModal();
+    } catch (error) {
+      showToast(error as string, 'error');
+    }
   };
 
   const clear = () => {
@@ -121,11 +148,9 @@ const LoginPage = () => {
 
     try {
       const response = await login(email, password);
-      
-      if (response.token) {
-        navigate('/chat');
-      }
+      if(response.error) return showToast(response.error, 'error');
 
+      navigate('/chat');
     } catch (error) {
       showToast(error as string, 'error');
     }
@@ -136,13 +161,10 @@ const LoginPage = () => {
 
     try {
       const response = await registerUser(registerEmail, registerPassword);
-      console.log(response);
-      
-      if (response.data) {
-        showToast('Account created!', 'success');
-        setRegisterChoice(false);
-      }
+      if (response.error) return showToast(response.error, 'error');
 
+      showToast('Account created!', 'success');
+      setRegisterChoice(false);
     } catch (error) {
       showToast(error as string, 'error');
     }
@@ -277,7 +299,7 @@ const LoginPage = () => {
               alignItems: 'center',
               pt: '0.7rem' 
             }}>
-              <Typography variant="subtitle2" sx={{ color: theme.palette.text.primary, cursor: 'pointer' }}>
+              <Typography variant="subtitle2" sx={{ color: theme.palette.text.primary, cursor: 'pointer' }} onClick={handleOpenModal}>
                 Forgot your password?
               </Typography>
               <Typography variant="subtitle2" sx={{ color: theme.palette.text.primary, cursor: 'pointer' }} onClick={handleToggle}>
@@ -285,6 +307,30 @@ const LoginPage = () => {
               </Typography>
             </Box>
           </Box>
+          {/* Modal de Esqueci a Senha */}
+          <Dialog open={modalOpen} onClose={handleCloseModal}>
+            <DialogTitle>Forgot Password</DialogTitle>
+            <DialogContent>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Email"
+                type="email"
+                fullWidth
+                variant="outlined"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseModal} color="primary">
+                Cancelar
+              </Button>
+              <Button onClick={handleForgotPassword} color="primary">
+                Enviar
+              </Button>
+            </DialogActions>
+          </Dialog>
           <Box>
           </Box>
           <Box sx={{
@@ -324,8 +370,7 @@ const LoginPage = () => {
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center'
-        }}>
-        </Box>
+        }}/>
             
         {/* Form register */}
         <Box sx={{ 
